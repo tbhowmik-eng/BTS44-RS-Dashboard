@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BTS 44 – Combined Dashboard (Literature + 50-State Policy Scan)</title>
+
+  <!-- Chart.js (used by Literature dashboard only) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      font-family: system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+      color-scheme: light;
+
+      --bg:#f4f5f7;
+      --card:#ffffff;
+      --border:#e0e4ea;
+      --text:#111827;
+      --muted:#4b5563;
+      --accent:#1d4ed8;
+      --accentSoft:#e8efff;
+      --shadow:0 12px 28px rgba(15,23,42,.08);
+      --radius:18px;
+
+      /* literature subtle */
+      --lit-pill-bg:#edf3ff;
+      --lit-pill-text:#2358a5;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-size:1.05rem}
+
+    /* Shell */
+    .app-shell{max-width:1650px;margin:0 auto;padding:18px 16px 28px}
+
+    /* Top nav */
+    .topbar{
+      position:sticky; top:0; z-index:50;
+      background:linear-gradient(0deg, rgba(244,245,247,.96), rgba(244,245,247,.96));
+      backdrop-filter:saturate(1.2) blur(6px);
+      border-bottom:1px solid rgba(224,228,234,.8);
+      margin:-18px -16px 14px;
+      padding:12px 16px;
+    }
+    .topbarRow{
+      display:flex; gap:10px; flex-wrap:wrap;
+      align-items:center; justify-content:space-between;
+      max-width:1650px; margin:0 auto;
+    }
+    .brand{display:flex;flex-direction:column;gap:2px;}
+    .brand h1{margin:0;font-size:1.15rem;letter-spacing:.02em}
+    .brand .sub{margin:0;color:var(--muted);font-size:.92rem}
+
+    .navBtns{display:flex;gap:10px;flex-wrap:wrap}
+    .btn{
+      border:1px solid #d0d7e2;
+      background:#ffffff;
+      color:var(--text);
+      border-radius:999px;
+      padding:9px 12px;
+      font-size:1rem;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      user-select:none;
+    }
+    .btn:hover{filter:brightness(.98)}
+    .btnPrimary{
+      border-color:transparent;
+      background:var(--accent);
+      color:#fff;
+    }
+    .btnActive{
+      border-color:transparent;
+      background:var(--accent);
+      color:#fff;
+    }
+
+    /* Shared */
+    .hidden{display:none!important}
+    header{margin-bottom:14px}
+    h1.pageTitle{margin:0 0 6px 0;font-size:1.55rem;letter-spacing:.02em}
+    h2{margin:0;font-size:1.2rem}
+    h3{margin:0;font-size:1.1rem}
+    .subtitle{margin:0;color:var(--muted);font-size:1.05rem;line-height:1.5;text-align:justify}
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:16px 16px 18px;
+      margin-bottom:14px;
+    }
+    .cardHeader{
+      display:flex;
+      justify-content:space-between;
+      align-items:baseline;
+      gap:10px;
+      margin-bottom:10px;
+    }
+    .hint{color:var(--muted);font-size:.92rem;letter-spacing:.03em}
+    .tag{
+      display:inline-flex;
+      align-items:center;
+      padding:4px 10px;
+      border-radius:999px;
+      background:var(--accentSoft);
+      color:var(--accent);
+      font-weight:650;
+      font-size:.9rem;
+      white-space:nowrap;
+    }
+
+    /* ========== LITERATURE DASHBOARD ========== */
+    .lit-summary-line{
+      margin-top:.6rem;
+      font-size:1.05rem;
+      color:var(--muted);
+      display:flex; flex-wrap:wrap; gap:.55rem;
+      align-items:center;
+    }
+    .lit-pill{
+      font-size:1.02rem;padding:.28rem .9rem;border-radius:999px;
+      background:var(--lit-pill-bg);color:var(--lit-pill-text);
+      font-weight:700;font-style:italic;border:none;
+      box-shadow:0 6px 16px rgba(0,0,0,.12)
+    }
+    .label{font-size:.92rem;text-transform:capitalize;letter-spacing:.08em;color:var(--muted)}
+
+    .controls-row{display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:.75rem}
+    .control-group{display:flex;flex-direction:column;gap:.25rem;min-width:210px;flex:1 1 210px}
+    label{font-size:.92rem;color:var(--muted)}
+    select,input[type="search"]{
+      border-radius:999px;border:1px solid #d0d7e2;padding:.45rem .9rem;
+      font-size:1.02rem;outline:none;background:#fff
+    }
+    select:focus,input[type="search"]:focus{border-color:#004b9b;box-shadow:0 0 0 2px rgba(0,75,155,.18)}
+    .chips-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.6rem}
+    .chip{font-size:.88rem;padding:.25rem .7rem;border-radius:999px;background:#edf2ff;color:#273b80}
+
+    .table-wrapper{
+      max-height:360px;overflow:auto;border-radius:var(--radius);
+      border:1px solid var(--border);
+      background:#fff;box-shadow:var(--shadow)
+    }
+    .table-wrapper thead{position:sticky;top:0;z-index:2;background:#f1f5f9}
+    table{width:100%;border-collapse:collapse}
+    th,td{border-bottom:1px solid #e5e7eb;padding:.5rem .45rem;font-size:.96rem;vertical-align:top}
+    th{font-size:.92rem;text-transform:capitalize;letter-spacing:.06em;color:var(--muted)}
+    .study-title{font-weight:650;margin-bottom:.1rem}
+    .study-meta{font-size:.9rem;color:var(--muted)}
+    .key-findings{margin:.15rem 0;padding-left:1.2rem;font-size:.95rem;color:var(--muted);line-height:1.45}
+    .key-findings li{margin-bottom:.15rem}
+
+    .takeaway-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+    @media (max-width: 1100px){.takeaway-grid{grid-template-columns:minmax(0,1fr)}}
+    .takeaway{
+      border-radius:var(--radius);border:1px solid #e5e7eb;background:#fbfdff;padding:.9rem 1rem
+    }
+    .takeaway ul{margin:.25rem 0 0 0;padding-left:1.2rem}
+    .takeaway li{margin:.25rem 0;color:var(--muted);line-height:1.45}
+
+    .chart-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+    @media (max-width: 1100px){.chart-grid-3{grid-template-columns:minmax(0,1fr)}}
+    canvas{max-width:100%}
+    .footnote{margin-top:.5rem;font-size:.92rem;color:var(--muted)}
+    .mini-title{font-size:1.05rem;margin:.1rem 0 .3rem 0}
+
+    /* ========== POLICY DASHBOARD ========== */
+    .topControls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0 10px 0}
+    .stateTitle{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      background:linear-gradient(0deg,#f8fbff,#ffffff);
+      border:1px solid #e7edf6;
+      margin-bottom:12px;
+    }
+    .stateTitle h3{margin:0;font-size:1.15rem}
+
+    .section{
+      border:1px solid #eef2f7;
+      border-radius:16px;
+      padding:12px 14px;
+      background:#fbfdff;
+      margin-top:12px;
+      text-align:left;
+    }
+    .section h4{margin:0 0 8px 0;font-size:1.05rem}
+
+    .twoCol{display:grid;grid-template-columns: 2.6fr 1fr;gap:16px}
+    @media (max-width: 1050px){.twoCol{grid-template-columns:1fr}}
+
+    .cols3{display:grid;grid-template-columns: 1.35fr 1.65fr 0.85fr;gap:14px}
+    @media (max-width: 1100px){.cols3{grid-template-columns:1fr}}
+
+    .subcard{
+      border:1px solid #e9edf3;
+      border-radius:14px;
+      background:#ffffff;
+      padding:12px 12px 10px;
+      text-align:left;
+      min-height: 110px;
+    }
+    .subcard h5{margin:0 0 8px 0;font-size:1rem;color:var(--text)}
+    ul{margin:0;padding-left:18px;color:var(--muted);line-height:1.45;text-align:left}
+    li{margin:3px 0}
+    ul ul{list-style-type: circle;margin-top:6px;color:var(--muted)}
+    strong u{text-decoration-thickness:2px;text-underline-offset:2px}
+
+    /* Policy summary table page */
+    .summaryWrap{max-width:1400px;margin:0 auto;padding:0}
+    .summaryTop{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .summaryTable{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:var(--shadow);
+    }
+    .summaryTable thead th{
+      position:sticky;top:0;background:#f8fafc;color:#111827;text-align:left;
+      font-weight:700;font-size:.95rem;border-bottom:1px solid var(--border);
+      padding:10px 12px;vertical-align:bottom
+    }
+    .summaryTable tbody td{
+      border-bottom:1px solid #edf2f7;padding:10px 12px;vertical-align:top;
+      color:#374151;font-size:.95rem;line-height:1.35
+    }
+    .summaryTable tbody tr:last-child td{border-bottom:none}
+  </style>
+</head>
+
+<body>
+  <!-- TOP NAV -->
+  <div class="topbar">
+    <div class="topbarRow">
+      <div class="brand">
+        <h1>BTS 44 – Combined Dashboard</h1>
+        <p class="sub">Literature review + nationwide policy scan (prototype)</p>
+      </div>
+      <div class="navBtns">
+        <button class="btn btnActive" id="navLit" type="button">Literature Dashboard</button>
+        <button class="btn" id="navPolicy" type="button">Policy Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-shell">
+
+    <!-- =========================
+         VIEW 1: LITERATURE DASHBOARD
+         ========================= -->
+    <div id="viewLiterature">
+      <header>
+        <h1 class="pageTitle">BTS 44 – Literature Review Dashboard (Total 5 Studies Reviewed)</h1>
+        <p class="subtitle">
+          This dashboard synthesizes Task 1 evidence for the BTSCRP topic: delayed licensure beyond GDL coverage and safety
+          implications for novice drivers licensed at ages 18–19. The explorer supports fast review of studies by theme and
+          data type. The visuals summarize evidence patterns <em>within each theme</em> (shown as proportions of studies).
+        </p>
+        <div class="lit-summary-line" id="litSummaryLine"></div>
+      </header>
+
+      <!-- Explorer -->
+      <section class="card">
+        <div class="cardHeader">
+          <h2>Interactive Evidence Explorer</h2>
+          <span class="label">filter + search</span>
+        </div>
+
+        <div class="controls-row">
+          <div class="control-group">
+            <label for="themeFilter">Theme</label>
+            <select id="themeFilter">
+              <option value="all">All themes</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="areaFilter">Study area</label>
+            <select id="areaFilter">
+              <option value="all">All study areas</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="sourceTypeFilter">Data type (simple)</label>
+            <select id="sourceTypeFilter">
+              <option value="all">All data types</option>
+              <option value="Survey">Survey data</option>
+              <option value="DMV/Crash">DMV / crash administrative data</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="popCatFilter">Population category</label>
+            <select id="popCatFilter">
+              <option value="all">All population categories</option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="searchBox">Search (author, population, findings, keywords)</label>
+            <input id="searchBox" type="search" placeholder='e.g., Latino, first-year crash risk, maternal monitoring' />
+          </div>
+        </div>
+
+        <div class="chips-row" id="activeSummary"></div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th style="min-width:180px;">Study</th>
+                <th style="min-width:190px;">Theme</th>
+                <th style="min-width:190px;">Study area</th>
+                <th style="min-width:170px;">Population category</th>
+                <th style="min-width:230px;">Population examined</th>
+                <th style="min-width:260px;">Data source</th>
+                <th style="min-width:320px;">Key findings</th>
+                <th style="min-width:220px;">Practical application</th>
+              </tr>
+            </thead>
+            <tbody id="studyTableBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Charts -->
+      <section class="card">
+        <div class="cardHeader">
+          <h2>Theme-Specific Visual Summaries (Proportions Within Theme)</h2>
+          <span class="label">each chart uses only studies in that theme</span>
+        </div>
+
+        <h3>1) Data type used (Survey vs DMV/Crash)</h3>
+        <div class="chart-grid-3">
+          <div><div class="mini-title" id="dtTitle1"></div><canvas id="dtChart1" height="230"></canvas></div>
+          <div><div class="mini-title" id="dtTitle2"></div><canvas id="dtChart2" height="230"></canvas></div>
+          <div><div class="mini-title" id="dtTitle3"></div><canvas id="dtChart3" height="230"></canvas></div>
+        </div>
+
+        <h3 style="margin-top:1rem;">2) Recurring finding signals (coded summary)</h3>
+        <div class="chart-grid-3">
+          <div><div class="mini-title" id="rfTitle1"></div><canvas id="rfChart1" height="250"></canvas></div>
+          <div><div class="mini-title" id="rfTitle2"></div><canvas id="rfChart2" height="250"></canvas></div>
+          <div><div class="mini-title" id="rfTitle3"></div><canvas id="rfChart3" height="250"></canvas></div>
+        </div>
+
+        <h3 style="margin-top:1rem;">3) Population examined (actual categories from your tables)</h3>
+        <div class="chart-grid-3">
+          <div><div class="mini-title" id="popTitle1"></div><canvas id="popChart1" height="230"></canvas></div>
+          <div><div class="mini-title" id="popTitle2"></div><canvas id="popChart2" height="230"></canvas></div>
+          <div><div class="mini-title" id="popTitle3"></div><canvas id="popChart3" height="230"></canvas></div>
+        </div>
+
+        <div class="footnote">
+          Note: proportions are calculated as (<em>count of studies matching the category</em>) ÷ (<em>total studies in the theme</em>).
+          Tooltips show both percent and raw counts (e.g., 2/2 studies).
+        </div>
+      </section>
+
+      <!-- Takeaways -->
+      <section class="card">
+        <div class="cardHeader">
+          <h2>Key Takeaways by Theme (Working Draft)</h2>
+          <span class="label">editable narrative</span>
+        </div>
+        <div class="takeaway-grid" id="takeawayGrid"></div>
+      </section>
+    </div>
+
+    <!-- =========================
+         VIEW 2: POLICY DASHBOARD (includes in-page switch to summary table)
+         ========================= -->
+    <div id="viewPolicy" class="hidden">
+      <div id="policyPageDashboard">
+        <header>
+          <h1 class="pageTitle">State Profile Dashboard – GDL vs Beyond-GDL</h1>
+          <p class="subtitle">
+            Use the dropdown to select a state. This prototype includes populated profiles for <strong>California</strong> and
+            <strong>Ohio</strong>, with placeholders for other states.
+          </p>
+        </header>
+
+        <section class="card">
+          <div class="cardHeader">
+            <h2>State Profile</h2>
+            <span class="hint">Select a state to load details</span>
+          </div>
+
+          <div class="topControls">
+            <label for="stateSelect">Select state:</label>
+            <select id="stateSelect"></select>
+            <span class="tag" id="dataTag">Data: TBD</span>
+            <button class="btn btnPrimary" id="openSummaryBtn" type="button">View Nationwide Summary</button>
+          </div>
+
+          <div class="stateTitle">
+            <h3 id="stateName">Select a state</h3>
+            <span class="tag">GDL vs Beyond-GDL</span>
+          </div>
+
+          <div class="twoCol">
+            <div class="section">
+              <h4>Under GDL Restriction</h4>
+              <div class="cols3">
+                <div class="subcard">
+                  <h5>Learner Stage</h5>
+                  <ul id="gdlLearner"></ul>
+                </div>
+                <div class="subcard">
+                  <h5>Provisional / Intermediate Stage</h5>
+                  <ul id="gdlIntermediate"></ul>
+                </div>
+                <div class="subcard">
+                  <h5>Full License</h5>
+                  <ul id="gdlFull"></ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h4>Provision Beyond GDL Restriction</h4>
+              <div class="subcard">
+                <ul id="beyondGDL"></ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="section">
+            <h4>Driver ED / Training Beyond GDL Age</h4>
+            <div class="subcard"><ul id="adultTraining"></ul></div>
+          </div>
+
+          <div class="section">
+            <h4>Cost and Administrative Factors</h4>
+            <div class="subcard"><ul id="costAdmin"></ul></div>
+          </div>
+
+          <div class="section">
+            <h4>Enforcement and Compliance</h4>
+            <div class="subcard"><ul id="enforcement"></ul></div>
+          </div>
+
+          <!-- NEW: State-specific literature evidence box -->
+          <div class="section">
+            <h4>State-Specific Literature Evidence</h4>
+            <div class="subcard">
+              <div class="hint" id="litStateHeader">Around 0 studies reviewed for this state.</div>
+              <ul id="litStateFindings" style="margin-top:8px;"></ul>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Policy summary "separate page" inside Policy view -->
+      <div id="policyPageSummary" class="hidden">
+        <header style="margin-bottom:12px;">
+          <h1 class="pageTitle">Nationwide Summary (All 50 States)</h1>
+          <p class="subtitle" style="max-width:1100px;">
+            This table is a preliminary placeholder illustrating how key policy and cost elements may differ between
+            GDL-covered novice drivers and first-time drivers beyond GDL coverage. Once the full 50-state scan is completed,
+            this summary will be updated to clearly show where differences exist and how they vary across states and licensing pathways.
+          </p>
+        </header>
+
+        <div class="summaryTop">
+          <span class="hint">Displayed only when the user clicks “View Nationwide Summary”</span>
+          <button class="btn btnPrimary" id="backBtn" type="button">← Back to Dashboard</button>
+        </div>
+
+        <table class="summaryTable" aria-label="Nationwide summary table">
+          <thead>
+            <tr>
+              <th style="width:24%;">Policy/Cost Element</th>
+              <th style="width:26%;">Under GDL Coverage (&lt;18 novice drivers)</th>
+              <th style="width:26%;">Beyond GDL Coverage (18+ first-time drivers)</th>
+              <th style="width:24%;">Can this differ by age/pathway?</th>
+            </tr>
+          </thead>
+          <tbody id="summaryBody"></tbody>
+        </table>
+
+        <p class="muted" style="margin-top:10px;">
+          Note: This is a synthesis view intended for cross-state interpretation and will be refined as the full 50-state scan is completed.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+<script>
+/* =========================================================
+   NAV (Literature <-> Policy)
+   ========================================================= */
+const navLit = document.getElementById("navLit");
+const navPolicy = document.getElementById("navPolicy");
+const viewLiterature = document.getElementById("viewLiterature");
+const viewPolicy = document.getElementById("viewPolicy");
+
+function setActiveNav(which){
+  if(which === "lit"){
+    navLit.classList.add("btnActive");
+    navPolicy.classList.remove("btnActive");
+    viewLiterature.classList.remove("hidden");
+    viewPolicy.classList.add("hidden");
+    window.scrollTo({top:0, behavior:"smooth"});
+  } else {
+    navPolicy.classList.add("btnActive");
+    navLit.classList.remove("btnActive");
+    viewPolicy.classList.remove("hidden");
+    viewLiterature.classList.add("hidden");
+    window.scrollTo({top:0, behavior:"smooth"});
+  }
+}
+navLit.addEventListener("click", () => setActiveNav("lit"));
+navPolicy.addEventListener("click", () => setActiveNav("policy"));
+
+/* =========================================================
+   LITERATURE DASHBOARD SCRIPT
+   ========================================================= */
+
+// coders
+function simpleDataType(dataSourceText) {
+  const t = (dataSourceText || "").toLowerCase();
+  const hasSurvey = t.includes("survey");
+  const hasDMV = t.includes("dmv") || t.includes("bureau of motor vehicles") || t.includes("bmv") || t.includes("licens") || t.includes("motor vehicles");
+  const hasCrash = t.includes("crash") || t.includes("public safety") || t.includes("official record");
+  if (hasSurvey && !hasDMV && !hasCrash) return "Survey";
+  if (hasDMV || hasCrash) return "DMV/Crash";
+  return "Survey";
+}
+
+function populationCategoryLabel(popText) {
+  const t = (popText || "").replace(/\s+/g, " ").trim();
+  if (/15\s*[-–]\s*22/i.test(t)) return "Ages 15–22";
+  if (/(<\s*18|under 18).*(18\s*[-–]\s*24)/i.test(t) || /(18\s*[-–]\s*24).*(<\s*18|under 18)/i.test(t)) return "<18 and 18–24";
+  if (/16\s*[-–]\s*35/i.test(t)) return "Ages 16–35";
+  if (/17\s*[-–]\s*26/i.test(t)) return "Ages 17–26";
+  return t.length ? t : "Not specified";
+}
+
+// studies
+const studies = [
+  {
+    citation: "Gao et al. (2022)",
+    theme: "Licensure Timing & Delay Trends",
+    area: "Nationwide (sample)",
+    population: "Drivers ages 15-22",
+    dataSource: "NEXT Generation Health Study (longitudinal survey)",
+    keyFindings: [
+      "Teens from families with less than a high school diploma or low family affluence had the highest rates of licensure delay."
+    ],
+    application: "--"
+  },
+  {
+    citation: "Vaca et al. (2021)",
+    theme: "Licensure Timing & Delay Trends",
+    area: "Nationwide (sample)",
+    population: "Drivers ages 15-22",
+    dataSource: "NEXT Generation Health Study (longitudinal survey)",
+    keyFindings: [
+      "Latino and non-Latino Black teens were more likely to delay licensure.",
+      "Higher levels of maternal monitoring were associated with reduced likelihood of long licensure delay."
+    ],
+    application: "--"
+  },
+  {
+    citation: "Walshe et al. (2022)",
+    theme: "Crash Risk by Licensure Age & Experience",
+    area: "Ohio",
+    population: "Drivers <18 and 18-24",
+    dataSource: "Ohio Bureau of Motor Vehicles licensing database + Ohio Department of Public Safety crash database",
+    keyFindings: [
+      "First-year crash risk was highest for older novice drivers (>18) compared to younger peers under GDL."
+    ],
+    application: "--"
+  },
+  {
+    citation: "Chapman et al. (2014)",
+    theme: "Crash Risk by Licensure Age & Experience",
+    area: "California",
+    population: "Drivers age 16 to 35",
+    dataSource: "California Department of Motor Vehicles (DMV) database (crashes and violations)",
+    keyFindings: [
+      "Higher Crash rates 1–2 months post-licensure across all ages; highest for age 16–18.",
+      "Higher Violation rates for older novices"
+    ],
+    application: "Recommends extending learner permit requirements to novice drivers beyond the GDL age."
+  },
+  {
+    citation: "Stanojević et al. (2022)",
+    theme: "International Evidence",
+    area: "Serbia",
+    population: "Drivers age 17-26",
+    dataSource: "Longitudinal survey + official records (as reported in study)",
+    keyFindings: [
+      "Drivers licensed with GDL reported safer attitudes toward violations/speed and higher safety orientation.",
+      "GDL was not related to numbers of crashes, fatalities, or injury outcomes in official records (in this context).",
+      "The program lacked key protective components (short learner period; late-starting night restriction; no passenger limits)."
+    ],
+    application: "Recommends strengthening GDL by adding protective components (earlier night restriction and passenger limits)."
+  }
+];
+
+const THEMES = [
+  "Licensure Timing & Delay Trends",
+  "Crash Risk by Licensure Age & Experience",
+  "International Evidence"
+];
+
+const recurringSignalsByTheme = {
+  "Licensure Timing & Delay Trends": [
+    { label: "Demographics linked with delay", count: 2 },
+    { label: "Socioeconomic status linked to delay", count: 1 },
+    { label: "Education linked to delay", count: 1 },
+    { label: "Maternal monitoring can reduce delay", count: 1 }
+  ],
+  "Crash Risk by Licensure Age & Experience": [
+    { label: "First-year crash risk higher for older novices", count: 1 },
+    { label: "Older novices have higher violation rates", count: 1 },
+    { label: "Crash rates similar across age groups", count: 1 }
+  ],
+  "International Evidence": [
+    { label: "GDL associated with safer driving attitudes/behavior", count: 1 },
+    { label: "Crash patterns similar irrespective of age (context-specific)", count: 1 }
+  ]
+};
+
+// DOM handles (literature)
+const litSummaryLine = document.getElementById("litSummaryLine");
+const themeFilter = document.getElementById("themeFilter");
+const areaFilter = document.getElementById("areaFilter");
+const sourceTypeFilter = document.getElementById("sourceTypeFilter");
+const popCatFilter = document.getElementById("popCatFilter");
+const searchBox = document.getElementById("searchBox");
+const tableBody = document.getElementById("studyTableBody");
+const activeSummary = document.getElementById("activeSummary");
+const takeawayGrid = document.getElementById("takeawayGrid");
+
+const dtTitles = [document.getElementById("dtTitle1"), document.getElementById("dtTitle2"), document.getElementById("dtTitle3")];
+const rfTitles = [document.getElementById("rfTitle1"), document.getElementById("rfTitle2"), document.getElementById("rfTitle3")];
+const popTitles= [document.getElementById("popTitle1"),document.getElementById("popTitle2"),document.getElementById("popTitle3")];
+
+const takeawaysByTheme = [
+  {
+    theme: "Licensure Timing & Delay Trends",
+    bullets: [
+      "Evidence suggests licensure delay varies by demographic and socioeconomic factors.",
+      "Maternal monitoring appears to reduce the likelihood of longer licensure delays."
+    ]
+  },
+  {
+    theme: "Crash Risk by Licensure Age & Experience",
+    bullets: [
+      "Evidence indicates elevated first-year crash risk among older novice drivers in some contexts.",
+      "Some studies suggest extending experience-building permit requirements beyond the GDL age."
+    ]
+  },
+  {
+    theme: "International Evidence",
+    bullets: [
+      "International findings suggest GDL may improve safety attitudes, while crash reductions may depend on program design.",
+      "Evidence highlights the importance of core protective components (meaningful learner phase, night and passenger restrictions)."
+    ]
+  }
+];
+
+function renderTakeaways() {
+  takeawayGrid.innerHTML = "";
+  takeawaysByTheme.forEach(t => {
+    const card = document.createElement("div");
+    card.className = "takeaway";
+    card.innerHTML = `
+      <h3>${t.theme}</h3>
+      <ul>${t.bullets.map(b => `<li>${b}</li>`).join("")}</ul>
+    `;
+    takeawayGrid.appendChild(card);
+  });
+}
+
+function renderTopSummary() {
+  const parts = THEMES.map(th => ({ th, n: studies.filter(s => s.theme === th).length }));
+  litSummaryLine.innerHTML = "";
+  parts.forEach(p => {
+    const span = document.createElement("span");
+    span.className = "lit-pill";
+    const short = p.th
+      .replace("Licensure Timing & Delay Trends", "Theme 1 (Licensure Timing & Delay Trends)")
+      .replace("Crash Risk by Licensure Age & Experience", "Theme 2 (Crash Risk by Licensure Age & Experience)")
+      .replace("International Evidence", "International Evidence");
+    span.textContent = `${short}: ${p.n} studies reviewed`;
+    litSummaryLine.appendChild(span);
+  });
+}
+
+function uniqueSorted(arr) { return Array.from(new Set(arr)).sort(); }
+
+function initFilters() {
+  uniqueSorted(studies.map(s => s.theme)).forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v; opt.textContent = v;
+    themeFilter.appendChild(opt);
+  });
+
+  uniqueSorted(studies.map(s => s.area)).forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v; opt.textContent = v;
+    areaFilter.appendChild(opt);
+  });
+
+  const popCats = uniqueSorted(studies.map(s => populationCategoryLabel(s.population)));
+  popCats.forEach(v => {
+    const opt = document.createElement("option");
+    opt.value = v; opt.textContent = v;
+    popCatFilter.appendChild(opt);
+  });
+}
+
+function renderActiveSummary(count) {
+  activeSummary.innerHTML = "";
+  const chips = [];
+  chips.push(`Showing ${count} of ${studies.length} studies`);
+  if (themeFilter.value !== "all") chips.push(`Theme: ${themeFilter.value}`);
+  if (areaFilter.value !== "all") chips.push(`Area: ${areaFilter.value}`);
+  if (sourceTypeFilter.value !== "all") chips.push(`Data type: ${sourceTypeFilter.value}`);
+  if (popCatFilter.value !== "all") chips.push(`Population: ${popCatFilter.value}`);
+  if (searchBox.value.trim()) chips.push(`Search: "${searchBox.value.trim()}"`);
+  chips.forEach(text => {
+    const span = document.createElement("span");
+    span.className = "chip";
+    span.textContent = text;
+    activeSummary.appendChild(span);
+  });
+}
+
+function renderTable(list) {
+  tableBody.innerHTML = "";
+  list.forEach(s => {
+    const bullets = (s.keyFindings || []).filter(x => (x || "").trim().length);
+    const popCat = populationCategoryLabel(s.population);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><div class="study-title">${s.citation}</div></td>
+      <td><div class="study-meta">${s.theme}</div></td>
+      <td><div>${s.area}</div></td>
+      <td><div class="study-meta">${popCat}</div></td>
+      <td><div>${s.population}</div></td>
+      <td><div>${s.dataSource}</div></td>
+      <td>
+        <ul class="key-findings">
+          ${bullets.map(b => `<li>${b}</li>`).join("")}
+        </ul>
+      </td>
+      <td><div class="study-meta">${s.application || "--"}</div></td>
+    `;
+    tableBody.appendChild(tr);
+  });
+}
+
+function applyFilters() {
+  const theme = themeFilter.value;
+  const area = areaFilter.value;
+  const src = sourceTypeFilter.value;
+  const pop = popCatFilter.value;
+  const query = searchBox.value.trim().toLowerCase();
+
+  let filtered = studies.slice();
+
+  if (theme !== "all") filtered = filtered.filter(s => s.theme === theme);
+  if (area !== "all") filtered = filtered.filter(s => s.area === area);
+  if (src !== "all") filtered = filtered.filter(s => simpleDataType(s.dataSource) === src);
+  if (pop !== "all") filtered = filtered.filter(s => populationCategoryLabel(s.population) === pop);
+
+  if (query) {
+    filtered = filtered.filter(s => {
+      const hay = (
+        s.citation + " " + s.theme + " " + s.area + " " +
+        s.population + " " + s.dataSource + " " +
+        (s.keyFindings || []).join(" ") + " " +
+        (s.application || "")
+      ).toLowerCase();
+      return hay.includes(query);
+    });
+  }
+
+  renderActiveSummary(filtered.length);
+  renderTable(filtered);
+}
+
+function percent(count, total){ return total ? Math.round((count / total) * 100) : 0; }
+
+function makePercentBarChart(canvas, labels, counts, total){
+  const percents = counts.map(c => percent(c, total));
+  const ctx = canvas.getContext("2d");
+  return new Chart(ctx, {
+    type: "bar",
+    data: { labels, datasets: [{ data: percents }] },
+    options: {
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context){
+              const i = context.dataIndex;
+              const c = counts[i];
+              const p = percents[i];
+              return `${p}%  (${c}/${total} studies)`;
+            }
+          }
+        }
+      },
+      scales: { y: { beginAtZero: true, max: 100, ticks: { callback: (v)=>v+"%" } } }
+    }
+  });
+}
+
+function makePercentHBarChart(canvas, labels, counts, total){
+  const percents = counts.map(c => percent(c, total));
+  const ctx = canvas.getContext("2d");
+  return new Chart(ctx, {
+    type: "bar",
+    data: { labels, datasets: [{ data: percents }] },
+    options: {
+      indexAxis: "y",
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(context){
+              const i = context.dataIndex;
+              const c = counts[i];
+              const p = percents[i];
+              return `${p}%  (${c}/${total} studies)`;
+            }
+          }
+        }
+      },
+      scales: { x: { beginAtZero: true, max: 100, ticks: { callback: (v)=>v+"%" } } }
+    }
+  });
+}
+
+let dtCharts = [], rfCharts = [], popCharts = [];
+function destroyCharts(chartList){ chartList.forEach(ch => { try { ch.destroy(); } catch(e){} }); chartList.length = 0; }
+
+function renderThemeCharts(){
+  destroyCharts(dtCharts); destroyCharts(rfCharts); destroyCharts(popCharts);
+
+  THEMES.forEach((th, idx) => {
+    const themeStudies = studies.filter(s => s.theme === th);
+    const total = themeStudies.length || 0;
+
+    const short = th
+      .replace("Licensure Timing & Delay Trends", "Theme 1 – Delay Trends")
+      .replace("Crash Risk by Licensure Age & Experience", "Theme 2 – Crash Risk")
+      .replace("International Evidence", "International");
+
+    dtTitles[idx].textContent = `${short} (n=${total})`;
+    rfTitles[idx].textContent = `${short} (n=${total})`;
+    popTitles[idx].textContent = `${short} (n=${total})`;
+
+    const dtLabels = ["Survey", "DMV/Crash"];
+    const dtCounts = dtLabels.map(lbl => themeStudies.filter(s => simpleDataType(s.dataSource) === lbl).length);
+    dtCharts.push(makePercentBarChart(document.getElementById(`dtChart${idx+1}`), dtLabels, dtCounts, total));
+
+    const signals = recurringSignalsByTheme[th] || [];
+    const rfLabels = signals.map(s => s.label);
+    const rfCounts = signals.map(s => s.count);
+    rfCharts.push(makePercentHBarChart(document.getElementById(`rfChart${idx+1}`), rfLabels, rfCounts, total));
+
+    const popLabels = uniqueSorted(themeStudies.map(s => populationCategoryLabel(s.population)));
+    const popCounts = popLabels.map(lbl => themeStudies.filter(s => populationCategoryLabel(s.population) === lbl).length);
+    popCharts.push(makePercentBarChart(document.getElementById(`popChart${idx+1}`), popLabels, popCounts, total));
+  });
+}
+
+// init literature
+[themeFilter, areaFilter, sourceTypeFilter, popCatFilter].forEach(sel => sel.addEventListener("change", applyFilters));
+searchBox.addEventListener("input", () => {
+  clearTimeout(searchBox._timer);
+  searchBox._timer = setTimeout(applyFilters, 180);
+});
+initFilters();
+renderTopSummary();
+renderTakeaways();
+renderThemeCharts();
+applyFilters();
+
+/* =========================================================
+   POLICY DASHBOARD SCRIPT
+   ========================================================= */
+
+const ALL_STATES = [
+  ["AL","Alabama"],["AK","Alaska"],["AZ","Arizona"],["AR","Arkansas"],["CA","California"],
+  ["CO","Colorado"],["CT","Connecticut"],["DE","Delaware"],["FL","Florida"],["GA","Georgia"],
+  ["HI","Hawaii"],["ID","Idaho"],["IL","Illinois"],["IN","Indiana"],["IA","Iowa"],
+  ["KS","Kansas"],["KY","Kentucky"],["LA","Louisiana"],["ME","Maine"],["MD","Maryland"],
+  ["MA","Massachusetts"],["MI","Michigan"],["MN","Minnesota"],["MS","Mississippi"],["MO","Missouri"],
+  ["MT","Montana"],["NE","Nebraska"],["NV","Nevada"],["NH","New Hampshire"],["NJ","New Jersey"],
+  ["NM","New Mexico"],["NY","New York"],["NC","North Carolina"],["ND","North Dakota"],["OH","Ohio"],
+  ["OK","Oklahoma"],["OR","Oregon"],["PA","Pennsylvania"],["RI","Rhode Island"],["SC","South Carolina"],
+  ["SD","South Dakota"],["TN","Tennessee"],["TX","Texas"],["UT","Utah"],["VT","Vermont"],
+  ["VA","Virginia"],["WA","Washington"],["WV","West Virginia"],["WI","Wisconsin"],["WY","Wyoming"]
+];
+
+function bulletsFromBlock(textBlock){
+  return String(textBlock || "")
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+const CA_PROFILE = {
+  stateName: "California",
+  stateAbbr: "CA",
+  hasData: true,
+
+  gdlLearner: bulletsFromBlock(`
+Minimum age: 15½ years
+Knowledge (road rules) test required
+Learner’s permit held for minimum 6 months
+50 hours of supervised driving required Including 10 hours nighttime
+Supervising driver must be 25 years or older
+Zero alcohol tolerance
+No mobile phone use, including hands-free
+Permit must be carried while driving`),
+
+  gdlIntermediate: bulletsFromBlock(`
+Minimum age: 16 years
+Must have completed learner stage requirements
+Provisional license held for 12 months
+Night driving restriction: No driving 11:00 p.m. – 5:00 a.m.
+Passenger restriction: No passengers under 20 years old unless accompanied by a licensed driver 25+
+Zero alcohol tolerance
+No mobile phone use, including hands-free
+Violations may result in license suspension or extension of provisional period`),
+
+  gdlFull: bulletsFromBlock(`
+Eligible after 12 months violation-free provisional driving
+GDL restrictions lifted
+Standard traffic laws apply`),
+
+  beyondGDL: bulletsFromBlock(`Age: 18
+Learner permit required (primarily administrative)
+No minimum holding period
+No supervised driving hour requirement
+No night or passenger restrictions
+Knowledge and road tests required
+No GDL-specific protections apply`),
+
+  adultTraining: bulletsFromBlock(`Driver education not required
+No Voluntary training programs`),
+
+  costAdmin: bulletsFromBlock(`Under GDL: Driver Education is needed (Around $100); Behind the wheel training is required (Around $400-800$)
+Beyond GDL: No education or tranining required
+No special age-tailored state insurance requirement for novices beyond standard minimum liability.
+Insurance Cost is same irrespective of age
+There’s no statutory lower fee for adults vs teens in the state license fee schedule.`),
+
+  enforcement: bulletsFromBlock(`California’s GDL enforcement system is distinctive: violations of provisional restrictions (night/passenger) can lead to administrative penalties that can delay or disrupt progression toward a full license.
+Teens can receive traffic citations and fines for violations of provisional license restrictions.
+Teen drivers who accrue two or more violation points within a year may face a 30-day suspension of their driving privileges.
+Three or more violation points within 12 months can lead to a 6-month license suspension and one year of probation.
+These enforcement consequences continue even if the driver turns 18 while the suspension/probation is active
+Adult novices do not face these GDL-specific administrative penalties, instead, they are subject to the state’s standard traffic enforcement and point system`)
+};
+
+const OH_PROFILE = {
+  stateName: "Ohio",
+  stateAbbr: "OH",
+  hasData: true,
+
+  gdlLearner: bulletsFromBlock(`
+Minimum age: 15½ years
+Knowledge (road rules) test required
+Learner’s permit held for minimum 6 months
+50 hours of supervised driving required Including 10 hours nighttime
+Supervising driver must be 21 years or older`),
+
+  gdlIntermediate: bulletsFromBlock(`
+Minimum age: 16 years
+Must have completed learner stage requirements
+Provisional license held for 12 months
+Night driving restriction: 12:00 A.M. – 6:00 A.M. (1st 12 months), 1:00 A.M. – 5:00 A.M. (2nd 12 months)
+Passenger restriction: First 12 months, no more than 1 passenger`),
+
+  gdlFull: bulletsFromBlock(`
+Eligible after 24 months violation-free provisional driving
+GDL restrictions lifted
+Standard traffic laws apply`),
+
+  beyondGDL: bulletsFromBlock(`Age: 18
+Learner permit required (primarily administrative)
+No minimum holding period
+No supervised driving hour requirement
+No night or passenger restrictions
+Knowledge and road tests required
+No GDL-specific protections apply`),
+
+  adultTraining: bulletsFromBlock(`Driver education required (24 hours) if under 21 years old
+Behind the wheel tranining Required (8 hours) if under 21 years old`),
+
+  costAdmin: bulletsFromBlock(`Under GDL: Driver Education is needed (Around $100); Behind the wheel training is required (Around $400-800$)
+Beyond GDL: Same Cost with same requirement if under 21 years old, otherwise none
+No special age-tailored state insurance requirement for novices beyond standard minimum liability.
+Insurance Cost is same irrespective of age
+There’s no statutory lower fee for adults vs teens in the state license fee schedule.`),
+
+  enforcement: bulletsFromBlock(`Under GDL (Probationary Drivers <18)
+There are explicit statutory restrictions (curfew, passenger limits) codified in Ohio law.
+Violation of these restrictions or other moving offenses can lead to:
+Suspension of probationary license or temporary permit.
+Remedial driving instruction requirements.
+Re-testing (road/knowledge).
+Potential denial of advancement to full license until conditions are satisfied.
+Remedial programs (e.g., juvenile remedial driving instruction) may be required as part of reinstatement.
+Adult novices are subject only to general enforcement (points, fines, standard suspensions) with no separate GDL progression mechanism.`)
+};
+
+const matrix = {};
+for (const [abbr, name] of ALL_STATES){
+  matrix[abbr] = {
+    stateName: name,
+    stateAbbr: abbr,
+    hasData: false,
+    gdlLearner: ["TBD"],
+    gdlIntermediate: ["TBD"],
+    gdlFull: ["TBD"],
+    beyondGDL: ["TBD"],
+    adultTraining: ["TBD"],
+    costAdmin: ["TBD"],
+    enforcement: ["TBD"]
+  };
+}
+matrix["CA"] = CA_PROFILE;
+matrix["OH"] = OH_PROFILE;
+
+// Renderers
+function renderList(ul, items){
+  ul.innerHTML = "";
+  (items || []).forEach(t => {
+    const text = String(t || "").trim();
+    if(!text) return;
+
+    const li = document.createElement("li");
+    if (text.startsWith("Under GDL:")) {
+      li.innerHTML = `<strong><u>Under GDL:</u></strong>${text.replace("Under GDL:", "")}`;
+    }
+    else if (text.startsWith("Beyond GDL:")) {
+      li.innerHTML = `<strong><u>Beyond GDL:</u></strong>${text.replace("Beyond GDL:", "")}`;
+    }
+    else {
+      li.textContent = text;
+    }
+    ul.appendChild(li);
+  });
+}
+
+function renderEnforcementList(ul, items){
+  ul.innerHTML = "";
+  const arr = (items || []).map(x => String(x || "").trim()).filter(Boolean);
+  if (arr.length === 0) return;
+
+  function formatLabels(text){
+    if (text.startsWith("Under GDL:")) return `<strong><u>Under GDL:</u></strong>${text.replace("Under GDL:", "")}`;
+    if (text.startsWith("Beyond GDL:")) return `<strong><u>Beyond GDL:</u></strong>${text.replace("Beyond GDL:", "")}`;
+    return null;
+  }
+
+  if (arr.length <= 2){
+    arr.forEach(text => {
+      const li = document.createElement("li");
+      const formatted = formatLabels(text);
+      if (formatted) li.innerHTML = formatted; else li.textContent = text;
+      ul.appendChild(li);
+    });
+    return;
+  }
+
+  const firstLI = document.createElement("li");
+  const firstFormatted = formatLabels(arr[0]);
+  if (firstFormatted) firstLI.innerHTML = firstFormatted; else firstLI.textContent = arr[0];
+  ul.appendChild(firstLI);
+
+  const subUL = document.createElement("ul");
+  subUL.style.marginTop = "6px";
+  subUL.style.paddingLeft = "22px";
+  firstLI.appendChild(subUL);
+
+  for (let i = 1; i < arr.length - 1; i++){
+    const subLI = document.createElement("li");
+    subLI.textContent = arr[i];
+    subUL.appendChild(subLI);
+  }
+
+  const lastLI = document.createElement("li");
+  const lastFormatted = formatLabels(arr[arr.length - 1]);
+  if (lastFormatted) lastLI.innerHTML = lastFormatted; else lastLI.textContent = arr[arr.length - 1];
+  ul.appendChild(lastLI);
+}
+
+// Policy DOM
+const stateSelect = document.getElementById("stateSelect");
+const stateNameEl = document.getElementById("stateName");
+const dataTagEl = document.getElementById("dataTag");
+
+const gdlLearnerEl = document.getElementById("gdlLearner");
+const gdlIntermediateEl = document.getElementById("gdlIntermediate");
+const gdlFullEl = document.getElementById("gdlFull");
+const beyondGDLEl = document.getElementById("beyondGDL");
+const adultTrainingEl = document.getElementById("adultTraining");
+const costAdminEl = document.getElementById("costAdmin");
+const enforcementEl = document.getElementById("enforcement");
+
+// NEW: literature box DOM
+const litStateHeaderEl = document.getElementById("litStateHeader");
+const litStateFindingsEl = document.getElementById("litStateFindings");
+
+function renderStateLiteratureBox(stateName){
+  const hits = studies.filter(s =>
+    String(s.area || "").trim().toLowerCase() === String(stateName || "").trim().toLowerCase()
+  );
+
+  const n = hits.length;
+  litStateHeaderEl.textContent = `Around ${n} studies reviewed for this state. Key findings include:`;
+
+  if (n === 0){
+    litStateFindingsEl.innerHTML = "";
+    const li = document.createElement("li");
+    li.textContent = "No state-specific studies have been added to the dashboard library yet for this state.";
+    litStateFindingsEl.appendChild(li);
+    return;
+  }
+
+  const findings = [];
+  hits.forEach(s => (s.keyFindings || []).forEach(k => {
+    const t = String(k || "").trim();
+    if (t) findings.push(t);
+  }));
+  const unique = Array.from(new Set(findings));
+
+  litStateFindingsEl.innerHTML = "";
+  unique.forEach(t => {
+    const li = document.createElement("li");
+    li.textContent = t;
+    litStateFindingsEl.appendChild(li);
+  });
+}
+
+function renderState(abbr){
+  const p = matrix[abbr];
+  if(!p) return;
+
+  stateSelect.value = abbr;
+  stateNameEl.textContent = `${p.stateName} (${p.stateAbbr})`;
+  dataTagEl.textContent = p.hasData ? "Data: Provided" : "Data: TBD";
+
+  renderList(gdlLearnerEl, p.gdlLearner);
+  renderList(gdlIntermediateEl, p.gdlIntermediate);
+  renderList(gdlFullEl, p.gdlFull);
+  renderList(beyondGDLEl, p.beyondGDL);
+  renderList(adultTrainingEl, p.adultTraining);
+  renderList(costAdminEl, p.costAdmin);
+
+  // special nesting only for enforcement
+  renderEnforcementList(enforcementEl, p.enforcement);
+
+  // NEW: literature evidence box
+  renderStateLiteratureBox(p.stateName);
+}
+
+// Populate dropdown
+for (const [abbr, name] of ALL_STATES){
+  const opt = document.createElement("option");
+  opt.value = abbr;
+  opt.textContent = `${name} (${abbr})`;
+  stateSelect.appendChild(opt);
+}
+stateSelect.addEventListener("change", e => renderState(e.target.value));
+renderState("CA");
+
+// Summary table + navigation inside Policy view
+const SUMMARY_ROWS = [
+  ["Learner permit required", "Typically yes", "Often yes, but may be “administrative-only”", "✅ Yes"],
+  ["Permit holding period", "Commonly required (e.g., 6–12 months)", "Often none or shorter", "✅ Yes (common)"],
+  ["Supervised driving hours", "Commonly required", "Rarely required", "✅ Yes (common)"],
+  ["Driver education required", "Frequently required", "Often not required", "✅ Yes (common)"],
+  ["Behind-the-wheel training required", "Sometimes required", "Rarely required", "✅ Yes"],
+  ["Road test required", "Yes", "Yes", "◻️ Usually no"],
+  ["Knowledge test required", "Yes", "Yes", "◻️ Usually no"],
+  ["Nighttime driving restriction", "Common in intermediate stage", "Typically none", "✅ Yes (almost always)"],
+  ["Passenger restriction", "Common in intermediate stage", "Typically none", "✅ Yes (almost always)"],
+  ["Cell phone / distraction restriction", "Often yes for novices", "May apply to all ages or none", "✅ Sometimes"],
+  ["Administrative fees (permit/license/test)", "Usually same fee schedule", "Usually same fee schedule", "◻️ Sometimes"],
+  ["Training costs (market cost)", "Higher if training mandated", "Lower if training optional", "✅ Yes (practically)"],
+  ["Insurance minimum requirements (state law)", "Same for all drivers", "Same for all drivers", "❌ Usually no"],
+  ["Insurance premiums (market practice)", "Typically highest for teens", "Often high but can differ from teens", "✅ Yes (market-driven)"],
+  ["Fee waivers / low-income programs", "Sometimes available", "Sometimes available", "✅ Yes (varies)"],
+  ["Relaxed requirements after 18", "N/A", "Common (fewer requirements)", "✅ Yes (core issue)"],
+  ["Enforcement consequences for violations", "Often specified (delay advancement, suspension)", "Standard penalties only", "✅ Yes"],
+  ["Data linkage capacity (licensure→crash/citation)", "May exist", "May exist", "✅ Not age-specific but critical"]
+];
+
+const summaryBody = document.getElementById("summaryBody");
+function renderSummaryTable(){
+  summaryBody.innerHTML = "";
+  SUMMARY_ROWS.forEach(r => {
+    const tr = document.createElement("tr");
+    r.forEach(cell => {
+      const td = document.createElement("td");
+      td.textContent = cell;
+      tr.appendChild(td);
+    });
+    summaryBody.appendChild(tr);
+  });
+}
+renderSummaryTable();
+
+const policyPageDashboard = document.getElementById("policyPageDashboard");
+const policyPageSummary = document.getElementById("policyPageSummary");
+
+document.getElementById("openSummaryBtn").addEventListener("click", () => {
+  policyPageDashboard.classList.add("hidden");
+  policyPageSummary.classList.remove("hidden");
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+document.getElementById("backBtn").addEventListener("click", () => {
+  policyPageSummary.classList.add("hidden");
+  policyPageDashboard.classList.remove("hidden");
+  window.scrollTo({top:0, behavior:"smooth"});
+});
+</script>
+</body>
+</html>
